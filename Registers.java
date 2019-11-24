@@ -1,3 +1,12 @@
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.ByteOrder;
+import java.io.RandomAccessFile;
+
 public class Registers {
 
     private int[] x;
@@ -13,6 +22,19 @@ public class Registers {
     public void writeRegister(int register, int value) {
         if (register != 0) {
             x[register] = value;
+        }
+    }
+
+    public void dumpRegisters() throws FileNotFoundException, IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(128);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i <x.length; i++) {
+            buffer.putInt(x[i]);
+        }
+        buffer.position(0);
+        try (RandomAccessFile writer = new RandomAccessFile("output.res", "rw");
+        FileChannel channel = writer.getChannel()){
+            channel.write(buffer);
         }
     }
 }
