@@ -24,7 +24,7 @@ public class RISC_VSim {
     }
 
     public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task1\\addlarge.bin";
+        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task1\\shift.bin";
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -52,7 +52,7 @@ public class RISC_VSim {
         System.out.println("Executing...\n");
         if (debug) {System.out.println("Basic code:\n");}
 
-        int instruction, opcode, rd, funct3, funct7, rs1, rs2, imm;
+        int instruction, opcode, rd, funct3, funct7, rs1, rs2, imm, offset;
 
         programLoop : while(true) {
             instruction = program[pc];
@@ -82,8 +82,8 @@ public class RISC_VSim {
                             break;
                         case 0x01:
                             if (opcode == 0x13) {
-                                registers.writeRegister(rd, rs1 << (imm & 0x31));
-                                if (debug) {System.out.println("slli x" + rd + " x" + rs1 + " " + (imm & 0x31));}
+                                registers.writeRegister(rd, registers.readRegister(rs1)  << (imm & 0x1F));
+                                if (debug) {System.out.println("slli x" + rd + " x" + rs1  + " " + (imm & 0x1F));}
                             } else if (opcode == 0x03) {
                                 System.out.println("LH");
                             }
@@ -108,10 +108,12 @@ public class RISC_VSim {
                         case 0x05:
                             if (opcode == 0x13) {
                                 if ((imm >> 5) == 0x00) {
-                                    System.out.println("SRLI");
+                                    registers.writeRegister(rd, registers.readRegister(rs1) >>> (imm & 0x1F));
+                                    if (debug) {System.out.println("srli x" + rd + " x" + rs1 + " " + (imm & 0x1F));}
+                                } else if ((imm >> 5) == 0x20) {
+                                    registers.writeRegister(rd, registers.readRegister(rs1) >> (imm & 0x1F));
+                                    if (debug) {System.out.println("srai x" + rd + " x" + rs1 + " " + (imm & 0x1F));}
                                 }
-                                System.out.println("SRLI");
-                                System.out.println("SRAI");
                             } else if (opcode == 0x03) {
                                 System.out.println("LHU");
                             }
@@ -152,8 +154,12 @@ public class RISC_VSim {
                         case 0x05:
                             if (funct7 == 0x00) {
                                 System.out.println("SRL");
+                                registers.writeRegister(rd, registers.readRegister(rs1) >>> registers.readRegister(rs2));
+                                if (debug) {System.out.println("srl x" + rd + " x" + rs1 + " x" + rs2);}
                             } else if (funct7 == 0x20) {
                                 System.out.println("SRA");
+                                registers.writeRegister(rd, rs1 >> registers.readRegister(rs2));
+                                if (debug) {System.out.println("sra x" + rd + " x" + rs1 + " x" + rs2);}
                             }
                             break;
                         case 0x06:
@@ -171,6 +177,15 @@ public class RISC_VSim {
                         registers.writeRegister(rd, (imm << 12));
                         if (debug) {System.out.println("lui x" + rd + " " + imm);}
                     } else if (opcode == 0x6F) {
+                        // TODO
+                    }
+                    break;
+                case 0x23:
+                case 0x63: // S-type
+                    offset = rd;
+                    if (opcode == 0x23) {
+                        // TODO
+                    } else if (opcode == 0x63) {
                         // TODO
                     }
                     break;
