@@ -25,6 +25,13 @@ public class Registers {
         }
     }
 
+    public void printRegisters() {
+        System.out.println("\nRegister content:\n");
+        for (int i = 0;i < x.length; i++) {
+            System.out.println("x" + i + ": " + x[i]);
+        }
+    }
+
     public void dumpRegisters() throws FileNotFoundException, IOException {
         ByteBuffer buffer = ByteBuffer.allocate(128);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
