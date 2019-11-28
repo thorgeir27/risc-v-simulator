@@ -185,8 +185,39 @@ public class RISC_VSim {
                     offset = rd;
                     if (opcode == 0x23) {
                         // TODO
-                    } else if (opcode == 0x63) {
-                        // TODO
+                    } else if (opcode == 0x63) { //SB-type
+                        if (((instruction >> 31) & 0x01) == 1) {
+                            offset = ((instruction >> 7) & 0x1E)
+                            + ((instruction >> 20) & 0x7E0)
+                            + ((instruction << 4) & 0x800)
+                            + ((instruction >> 31) & 0x1000)
+                            + 0xFFFFE000;
+                        } else {
+                            offset = ((instruction >> 7) & 0x1E)
+                                + ((instruction >> 20) & 0x7E0)
+                                + ((instruction << 4) & 0x800)
+                                + ((instruction >> 31) & 0x1000);
+                        }
+                        switch (funct3) {
+                            case 0x00:
+                                //BEQ
+                                break;
+                            case 0x01:
+                                //BNE
+                                break;
+                            case 0x04:
+                                //BLT
+                                break;
+                            case 0x05:
+                                //BGE
+                                break;
+                            case 0x06:
+                                //BLTU
+                                break;
+                            case 0x07:
+                                //BGEU
+                                break;
+                        }
                     }
                     break;
                 case 0x73:
