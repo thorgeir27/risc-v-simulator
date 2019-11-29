@@ -15,16 +15,18 @@ public class RISC_VSim {
     private int[] program;
     private int pc;
     private boolean debug;
+    private byte[] memory;
 
     public RISC_VSim() throws FileNotFoundException, IOException {
         this.registers = new Registers();
         this.pc = 0;
         this.debug = true;
         this.readProgram();
+        this.memory =  new byte[1000000];
     }
 
     public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task1\\shift.bin";
+        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task2\\branchcnt.bin";
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -153,11 +155,9 @@ public class RISC_VSim {
                             break;
                         case 0x05:
                             if (funct7 == 0x00) {
-                                System.out.println("SRL");
                                 registers.writeRegister(rd, registers.readRegister(rs1) >>> registers.readRegister(rs2));
                                 if (debug) {System.out.println("srl x" + rd + " x" + rs1 + " x" + rs2);}
                             } else if (funct7 == 0x20) {
-                                System.out.println("SRA");
                                 registers.writeRegister(rd, rs1 >> registers.readRegister(rs2));
                                 if (debug) {System.out.println("sra x" + rd + " x" + rs1 + " x" + rs2);}
                             }
@@ -183,39 +183,68 @@ public class RISC_VSim {
                 case 0x23:
                 case 0x63: // S-type
                     offset = rd;
+                    rs2 = (instruction >> 20) & 0x1F;
                     if (opcode == 0x23) {
-                        // TODO
+                        offset = ((instruction >> 20) & 0xFE0) + rd;
+                        switch (funct3) {
+                            case 0x00:
+                                memory[registers.readRegister(rs1) + (offset/8)] = (byte) (registers.readRegister(rs2) & 0xFF);
+                                if (debug) {System.out.println("sb " + "x" + rs2 + " " + offset + "(" + rs1 + ")");}
+                                break;
+                            case 0x01:
+                                memory[registers.readRegister(rs1) + (offset/8)] = (byte) (registers.readRegister(rs2) & 0xFF);
+                                if (debug) {System.out.println("sb " + "x" + rs2 + " " + offset + "(" + rs1 + ")");}
+                                break;
+                            case 0x02:
+                                break;
+                        }
                     } else if (opcode == 0x63) { //SB-type
-                        if (((instruction >> 31) & 0x01) == 1) {
-                            offset = ((instruction >> 7) & 0x1E)
+                        offset = (((instruction >> 31) & 0x01) == 1)
+                            ? ((instruction >> 7) & 0x1E)
                             + ((instruction >> 20) & 0x7E0)
                             + ((instruction << 4) & 0x800)
                             + ((instruction >> 31) & 0x1000)
-                            + 0xFFFFE000;
-                        } else {
-                            offset = ((instruction >> 7) & 0x1E)
-                                + ((instruction >> 20) & 0x7E0)
-                                + ((instruction << 4) & 0x800)
-                                + ((instruction >> 31) & 0x1000);
-                        }
+                            + 0xFFFFE000
+                            : ((instruction >> 7) & 0x1E)
+                            + ((instruction >> 20) & 0x7E0)
+                            + ((instruction << 4) & 0x800)
+                            + ((instruction >> 31) & 0x1000);
                         switch (funct3) {
                             case 0x00:
-                                //BEQ
+                                if (registers.readRegister(rs1) == registers.readRegister(rs2)) {
+                                    pc = pc + (offset / 4) - 1; // Incremented at the end of the loop
+                                }
+                                if (debug) {System.out.println("beq " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                             case 0x01:
-                                //BNE
+                                if (registers.readRegister(rs1) != registers.readRegister(rs2)) {
+                                    pc = pc + (offset / 4) - 1; 
+                                }
+                                if (debug) {System.out.println("bne " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                             case 0x04:
-                                //BLT
+                                if (registers.readRegister(rs1) < registers.readRegister(rs2)) {
+                                    pc = pc + (offset / 4) - 1; 
+                                }
+                                if (debug) {System.out.println("blt " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                             case 0x05:
-                                //BGE
+                                if (registers.readRegister(rs1) >= registers.readRegister(rs2)) {
+                                    pc = pc + (offset / 4) - 1; 
+                                }
+                                if (debug) {System.out.println("bge " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                             case 0x06:
-                                //BLTU
+                                if (Integer.compareUnsigned(registers.readRegister(rs1), registers.readRegister(rs2)) < 0) {
+                                    pc = pc + (offset / 4) - 1; 
+                                }
+                                if (debug) {System.out.println("bltu " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                             case 0x07:
-                                //BGEU
+                                if (Integer.compareUnsigned(registers.readRegister(rs1), registers.readRegister(rs2)) >= 0) {
+                                    pc = pc + (offset / 4) - 1;
+                                }
+                                if (debug) {System.out.println("bgeu " + "x" + rs1 + " x" + rs2 + " " + offset);}
                                 break;
                         }
                     }
@@ -227,29 +256,6 @@ public class RISC_VSim {
                     if (debug) {System.out.println("Opcode " + opcode + " not yet implemented");}
                     break;
             }
-
-            /*
-            switch (opcode) {
-                case 0x13:
-                    registers.writeRegister(rd, registers.readRegister(rs1) + imm);
-                    if (debug) {System.out.println("addi x" + rd + " x" + rs1 + " " + imm);}
-                    break;
-                case 0x33:
-                    registers.writeRegister(rd, registers.readRegister(rs1) + registers.readRegister(imm));
-                    if (debug) {System.out.println("add x" + rd + " x" + rs1 + " x" + imm);}
-                    break;
-                case 0x37:
-                    registers.writeRegister(rd, (immL << 12));
-                    if (debug) {System.out.println("lui x" + rd + " " + immL);}
-                    break;
-                case 0x73:
-                    if (debug) {System.out.println("ecall");}
-                    break programLoop;
-                default:
-                    if (debug) {System.out.println("Opcode " + opcode + " not yet implemented");}
-                    break;
-            }
-            */
             pc++;
         }
 
