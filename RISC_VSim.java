@@ -27,7 +27,7 @@ public class RISC_VSim {
     }
 
     public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\itests\\test_jal.bin";
+        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\itests\\test_sw.bin";
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -298,7 +298,7 @@ public class RISC_VSim {
                     break programLoop;
                 case 0x67:
                     imm = (instruction >> 20);
-                    registers.writeRegister(rd, pc+1);
+                    registers.writeRegister(rd, (pc+1)*4);
                     pc = ((registers.readRegister(rs1) + imm) / 4) - 1;
                     if ( debug) {System.out.println("jalr x" + rd + " x" + rs1 + " " + imm);}
                     break;
