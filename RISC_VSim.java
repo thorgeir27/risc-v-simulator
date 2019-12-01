@@ -15,18 +15,19 @@ public class RISC_VSim {
     private int[] program;
     private int pc;
     private boolean debug;
-    private byte[] memory;
+    //private byte[] memory;
+    private Memory memory;
 
     public RISC_VSim() throws FileNotFoundException, IOException {
         this.registers = new Registers();
         this.pc = 0;
         this.debug = true;
         this.readProgram();
-        this.memory =  new byte[1000000];
+        this.memory =  new Memory(1000000);
     }
 
     public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task2\\branchcnt.bin";
+        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\itests\\test_jal.bin";
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -54,16 +55,11 @@ public class RISC_VSim {
         System.out.println("Executing...\n");
         if (debug) {System.out.println("Basic code:\n");}
 
-        int instruction, opcode, rd, funct3, funct7, rs1, rs2, imm, offset;
+        int instruction, opcode, rd, funct3, funct7, rs1, rs2, imm, offset, temp;
 
         programLoop : while(true) {
             instruction = program[pc];
-            /*opcode = instruction & 0x7f;
-            rd = (instruction >> 7) & 0x01f;
-            rs1 = (instruction >> 15) & 0x01f;
-            imm = (instruction >> 20);
-            immL = (instruction >> 12)  & 0xFFFFF; 12 bits ekki tíu!!
-            */
+
             opcode = instruction & 0x7F;
             rd = (instruction >> 7) & 0x1F;
             funct3 = (instruction >> 12) & 0x07;
@@ -79,7 +75,11 @@ public class RISC_VSim {
                                 registers.writeRegister(rd, registers.readRegister(rs1) + imm);
                                 if (debug) {System.out.println("addi x" + rd + " x" + rs1 + " " + imm);}
                             } else if (opcode == 0x03) {
-                                System.out.println("LB");
+                                temp = memory.load(registers.readRegister(rs1) + imm + 7, 1) == 1
+                                    ? memory.load(registers.readRegister(rs1) + imm, 8) | 0xFFFFFF00
+                                    : memory.load(registers.readRegister(rs1) + imm, 8);
+                                registers.writeRegister(rd, temp);
+                                if (debug) {System.out.println("lb " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
                             break;
                         case 0x01:
@@ -87,24 +87,36 @@ public class RISC_VSim {
                                 registers.writeRegister(rd, registers.readRegister(rs1)  << (imm & 0x1F));
                                 if (debug) {System.out.println("slli x" + rd + " x" + rs1  + " " + (imm & 0x1F));}
                             } else if (opcode == 0x03) {
-                                System.out.println("LH");
+                                temp = memory.load(registers.readRegister(rs1) + imm + 15, 1) == 1
+                                    ? memory.load(registers.readRegister(rs1) + imm, 16) | 0xFFFF0000
+                                    : memory.load(registers.readRegister(rs1) + imm, 16);
+                                registers.writeRegister(rd, temp);
+                                if (debug) {System.out.println("lh " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
                             break;
                         case 0x02:
                             if (opcode == 0x13) {
-                                System.out.println("SLTI");
+                                temp = registers.readRegister(rs1) < imm ? 1 : 0;
+                                registers.writeRegister(rd, temp); 
+                                if (debug) {System.out.println("slti x" + rd + " x" + rs1 + " " + imm);}
                             } else if (opcode == 0x03) {
-                                System.out.println("LW");
+                                registers.writeRegister(rd, memory.load(registers.readRegister(rs1) + imm, 32));
+                                if (debug) {System.out.println("lw " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
                             break;
                         case 0x03:
-                            System.out.println("SLTIU");
+                            temp = Integer.compareUnsigned(registers.readRegister(rs1), imm) > 0 ? 1 : 0;
+                            registers.writeRegister(rd, temp); 
+                            if (debug) {System.out.println("sltiu x" + rd + " x" + rs1 + " " + imm);}
                             break;
                         case 0x04:
                             if (opcode == 0x13) {
-                                System.out.println("XORI");
+                                registers.writeRegister(rd, registers.readRegister(rs1) ^ imm);
+                                if (debug) {System.out.println("xori x" + rd + " x" + rs1 + " " + imm);}
                             } else if (opcode == 0x03) {
-                                System.out.println("LBU");
+                                registers.writeRegister(rd, memory.load(registers.readRegister(rs1) + imm, 8));
+                                if (debug) {System.out.println("lbu " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
+
                             }
                             break;
                         case 0x05:
@@ -117,14 +129,17 @@ public class RISC_VSim {
                                     if (debug) {System.out.println("srai x" + rd + " x" + rs1 + " " + (imm & 0x1F));}
                                 }
                             } else if (opcode == 0x03) {
-                                System.out.println("LHU");
+                                registers.writeRegister(rd, memory.load(registers.readRegister(rs1) + imm, 16));
+                                if (debug) {System.out.println("lhu " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
                             break;
                         case 0x06:
-                            System.out.println("ORI");
+                            registers.writeRegister(rd, registers.readRegister(rs1) | imm);
+                            if (debug) {System.out.println("ori x" + rd + " x" + rs1 + " " + imm);}
                             break;
                         case 0x07:
-                            System.out.println("ANDI");
+                            registers.writeRegister(rd, registers.readRegister(rs1) & imm);
+                            if (debug) {System.out.println("andi x" + rd + " x" + rs1 + " " + imm);}
                             break;
                     }
                     break;
@@ -142,16 +157,22 @@ public class RISC_VSim {
                             }
                             break;
                         case 0x01:
-                            System.out.println("SLL");
+                            registers.writeRegister(rd, registers.readRegister(rs1)  << registers.readRegister(rs2));
+                            if (debug) {System.out.println("sll x" + rd + " x" + rs1  + " x" + rs2);}
                             break;
                         case 0x02:
-                            System.out.println("SLT");
+                            temp = registers.readRegister(rs1) < registers.readRegister(rs2) ? 1 : 0;
+                            registers.writeRegister(rd, temp); 
+                            if (debug) {System.out.println("slt x" + rd + " x" + rs1 + " x" + rs2);}
                             break;
                         case 0x03:
-                            System.out.println("SLTU");
+                            temp = Integer.compareUnsigned(registers.readRegister(rs1), registers.readRegister(rs2)) > 0 ? 1 : 0;
+                            registers.writeRegister(rd, temp); 
+                            if (debug) {System.out.println("sltu x" + rd + " x" + rs1 + " x" + rs2);}
                             break;
                         case 0x04:
-                            System.out.println("XOR");
+                            registers.writeRegister(rd, registers.readRegister(rs1) ^ registers.readRegister(rs2));
+                            if (debug) {System.out.println("xor x" + rd + " x" + rs1 + " x" + rs2);}
                             break;
                         case 0x05:
                             if (funct7 == 0x00) {
@@ -163,21 +184,40 @@ public class RISC_VSim {
                             }
                             break;
                         case 0x06:
-                            System.out.println("OR");
+                            registers.writeRegister(rd, registers.readRegister(rs1) | registers.readRegister(rs2));
+                            if (debug) {System.out.println("or x" + rd + " x" + rs1 + " x" + rs2);}
                             break;
                         case 0x07:
-                            System.out.println("AND");
+                            registers.writeRegister(rd, registers.readRegister(rs1) & registers.readRegister(rs2));
+                            if (debug) {System.out.println("and x" + rd + " x" + rs1 + " x" + rs2);}
                             break;
                     }
                     break;
                 case 0x37:
+                case 0x6F:
                 case 0x17: // U-type
-                    imm = (instruction >>> 12);//  & 0xFFFFF;
+                    imm = (instruction >>> 12);
                     if (opcode == 0x37) {
                         registers.writeRegister(rd, (imm << 12));
                         if (debug) {System.out.println("lui x" + rd + " " + imm);}
                     } else if (opcode == 0x6F) {
-                        // TODO
+                        // JAL
+                        offset = ((imm >> 19) & 0x01) == 1
+                            ? ((imm >> 8) & 0x7FE)
+                            + ((imm << 2) & 0x800)
+                            + ((imm << 13) & 0x1FF00)
+                            + ((imm << 1) & 0x100000)
+                            + 0xFFE00000
+                            : ((imm >> 8) & 0x7FE)
+                            + ((imm << 2) & 0x800)
+                            + ((imm << 13) & 0x1FF00)
+                            + ((imm << 1) & 0x100000);
+                        registers.writeRegister(rd, (pc + 1)*4);
+                        pc = pc + (offset/4) -1;
+                        if (debug) {System.out.println("jal x" + rd + " " + offset);}
+                    } else if (opcode == 0x17) {
+                        registers.writeRegister(rd, (imm << 12) + pc);
+                        if (debug) {System.out.println("auipc x" + rd + " " + imm);}
                     }
                     break;
                 case 0x23:
@@ -185,17 +225,21 @@ public class RISC_VSim {
                     offset = rd;
                     rs2 = (instruction >> 20) & 0x1F;
                     if (opcode == 0x23) {
-                        offset = ((instruction >> 20) & 0xFE0) + rd;
+                        offset = (((instruction >> 31) & 0x01) == 1)
+                            ? ((instruction >> 20) & 0xFE0) + rd - 4096
+                            : ((instruction >> 20) & 0xFE0) + rd;
                         switch (funct3) {
                             case 0x00:
-                                memory[registers.readRegister(rs1) + (offset/8)] = (byte) (registers.readRegister(rs2) & 0xFF);
-                                if (debug) {System.out.println("sb " + "x" + rs2 + " " + offset + "(" + rs1 + ")");}
+                                memory.store(registers.readRegister(rs1) + offset, 8, registers.readRegister(rs2));
+                                if (debug) {System.out.println("sb " + "x" + rs2 + " " + offset + "(x" + rs1 + ")");}
                                 break;
                             case 0x01:
-                                memory[registers.readRegister(rs1) + (offset/8)] = (byte) (registers.readRegister(rs2) & 0xFF);
-                                if (debug) {System.out.println("sb " + "x" + rs2 + " " + offset + "(" + rs1 + ")");}
+                                memory.store(registers.readRegister(rs1) + offset, 16, registers.readRegister(rs2));
+                                if (debug) {System.out.println("sh " + "x" + rs2 + " " + offset + "(x" + rs1 + ")");}
                                 break;
                             case 0x02:
+                                memory.store(registers.readRegister(rs1) + offset, 32, registers.readRegister(rs2));
+                                if (debug) {System.out.println("sw " + "x" + rs2 + " " + offset + "(x" + rs1 + ")");}
                                 break;
                         }
                     } else if (opcode == 0x63) { //SB-type
@@ -252,6 +296,12 @@ public class RISC_VSim {
                 case 0x73:
                     if (debug) {System.out.println("ecall");}
                     break programLoop;
+                case 0x67:
+                    imm = (instruction >> 20);
+                    registers.writeRegister(rd, pc+1);
+                    pc = ((registers.readRegister(rs1) + imm) / 4) - 1;
+                    if ( debug) {System.out.println("jalr x" + rd + " x" + rs1 + " " + imm);}
+                    break;
                 default:
                     if (debug) {System.out.println("Opcode " + opcode + " not yet implemented");}
                     break;
