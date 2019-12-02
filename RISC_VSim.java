@@ -23,11 +23,11 @@ public class RISC_VSim {
         this.pc = 0;
         this.debug = true;
         this.readProgram();
-        this.memory =  new Memory(1000000);
+        this.memory =  new Memory(10000000);
     }
 
     public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\itests\\test_sw.bin";
+        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task3\\loop.bin";
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -75,9 +75,10 @@ public class RISC_VSim {
                                 registers.writeRegister(rd, registers.readRegister(rs1) + imm);
                                 if (debug) {System.out.println("addi x" + rd + " x" + rs1 + " " + imm);}
                             } else if (opcode == 0x03) {
-                                temp = memory.load(registers.readRegister(rs1) + imm + 7, 1) == 1
-                                    ? memory.load(registers.readRegister(rs1) + imm, 8) | 0xFFFFFF00
-                                    : memory.load(registers.readRegister(rs1) + imm, 8);
+                                temp = memory.load(registers.readRegister(rs1) + imm, 8);
+                                temp = ((temp >> 7) & 0x01) == 1 
+                                    ? temp | 0xFFFFFF00
+                                    : temp;
                                 registers.writeRegister(rd, temp);
                                 if (debug) {System.out.println("lb " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
@@ -87,9 +88,13 @@ public class RISC_VSim {
                                 registers.writeRegister(rd, registers.readRegister(rs1)  << (imm & 0x1F));
                                 if (debug) {System.out.println("slli x" + rd + " x" + rs1  + " " + (imm & 0x1F));}
                             } else if (opcode == 0x03) {
-                                temp = memory.load(registers.readRegister(rs1) + imm + 15, 1) == 1
-                                    ? memory.load(registers.readRegister(rs1) + imm, 16) | 0xFFFF0000
-                                    : memory.load(registers.readRegister(rs1) + imm, 16);
+                                //temp = memory.load(registers.readRegister(rs1) + imm + 15, 1) == 1
+                                //    ? memory.load(registers.readRegister(rs1) + imm, 16) | 0xFFFF0000
+                                //    : memory.load(registers.readRegister(rs1) + imm, 16);
+                                temp = memory.load(registers.readRegister(rs1) + imm, 16);
+                                temp = ((temp >> 15) & 0x01) == 1
+                                    ? temp | 0xFFFF0000
+                                    : temp;
                                 registers.writeRegister(rd, temp);
                                 if (debug) {System.out.println("lh " + "x" + rd + " " + imm + "(x" + rs1 + ")");}
                             }
@@ -203,14 +208,14 @@ public class RISC_VSim {
                     } else if (opcode == 0x6F) {
                         // JAL
                         offset = ((imm >> 19) & 0x01) == 1
-                            ? ((imm >> 8) & 0x7FE)
-                            + ((imm << 2) & 0x800)
-                            + ((imm << 13) & 0x1FF00)
+                            ? ((imm << 13) & 0xFE000)
+                            + ((imm << 5) &  0x1000)
+                            + ((imm >> 8) &  0xFFE)
                             + ((imm << 1) & 0x100000)
-                            + 0xFFE00000
-                            : ((imm >> 8) & 0x7FE)
-                            + ((imm << 2) & 0x800)
-                            + ((imm << 13) & 0x1FF00)
+                            | 0xFFE00000
+                            : ((imm << 13) & 0xFE000)
+                            + ((imm << 5) &  0x1000)
+                            + ((imm >> 8) &  0xFFE)
                             + ((imm << 1) & 0x100000);
                         registers.writeRegister(rd, (pc + 1)*4);
                         pc = pc + (offset/4) -1;
@@ -302,11 +307,9 @@ public class RISC_VSim {
                     pc = ((registers.readRegister(rs1) + imm) / 4) - 1;
                     if ( debug) {System.out.println("jalr x" + rd + " x" + rs1 + " " + imm);}
                     break;
-                default:
-                    if (debug) {System.out.println("Opcode " + opcode + " not yet implemented");}
-                    break;
             }
             pc++;
+            System.out.println(instruction);
         }
 
     }
