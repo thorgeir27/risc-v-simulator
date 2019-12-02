@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Scanner;
 
 /**
  * RISC-V Instruction Set Simulator
@@ -15,19 +16,22 @@ public class RISC_VSim {
     private int[] program;
     private int pc;
     private boolean debug;
-    //private byte[] memory;
     private Memory memory;
 
-    public RISC_VSim() throws FileNotFoundException, IOException {
+    public RISC_VSim(String[] args) throws FileNotFoundException, IOException {
         this.registers = new Registers();
         this.pc = 0;
-        this.debug = true;
-        this.readProgram();
+        this.readProgram(args[0]);
         this.memory =  new Memory(10000000);
+        if (args.length > 1) {this.debug = args[1].equals("0") ? false : true;}
+        else {this.debug = true;}
     }
 
-    public void readProgram() throws FileNotFoundException, IOException {
-        String fileName = "..\\cae-lab-master\\finasgmt\\tests\\task3\\loop.bin";
+    public void readProgram(String fileName) throws FileNotFoundException, IOException {
+        //String fileName = "..\\cae-lab-master\\finasgmt\\tests\\final\\final\\simple.bin";
+        //Scanner scanner = new Scanner(System.in);
+        //String fileName = scanner.nextLine();
+        //scanner.close();
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -40,7 +44,7 @@ public class RISC_VSim {
                 i++;
             }
         }
-
+   
         program = new int[instructions.length / 4];
 
         for(i = 0;i < program.length;i++) {
@@ -309,14 +313,18 @@ public class RISC_VSim {
                     break;
             }
             pc++;
-            System.out.println(instruction);
+            if (pc >= program.length) {break programLoop;}
         }
 
     }
 
     public static void main(String[] args) throws FileNotFoundException, IOException {
+        if (args.length == 0) {
+            System.out.println("No binary file provided");
+            return;
+        }
         System.out.println("\n---RISC-V Simulator---\n");
-        RISC_VSim rv = new RISC_VSim();
+        RISC_VSim rv = new RISC_VSim(args);
         rv.execute();
         rv.registers.dumpRegisters();
         rv.registers.printRegisters();
