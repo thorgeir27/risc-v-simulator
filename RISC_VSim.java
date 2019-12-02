@@ -2,7 +2,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Scanner;
 
 /**
  * RISC-V Instruction Set Simulator
@@ -28,10 +27,6 @@ public class RISC_VSim {
     }
 
     public void readProgram(String fileName) throws FileNotFoundException, IOException {
-        //String fileName = "..\\cae-lab-master\\finasgmt\\tests\\final\\final\\simple.bin";
-        //Scanner scanner = new Scanner(System.in);
-        //String fileName = scanner.nextLine();
-        //scanner.close();
         File file = new File(fileName);
         int[] instructions = new int[(int) file.length()];
         int i = 0;
@@ -92,9 +87,6 @@ public class RISC_VSim {
                                 registers.writeRegister(rd, registers.readRegister(rs1)  << (imm & 0x1F));
                                 if (debug) {System.out.println("slli x" + rd + " x" + rs1  + " " + (imm & 0x1F));}
                             } else if (opcode == 0x03) {
-                                //temp = memory.load(registers.readRegister(rs1) + imm + 15, 1) == 1
-                                //    ? memory.load(registers.readRegister(rs1) + imm, 16) | 0xFFFF0000
-                                //    : memory.load(registers.readRegister(rs1) + imm, 16);
                                 temp = memory.load(registers.readRegister(rs1) + imm, 16);
                                 temp = ((temp >> 15) & 0x01) == 1
                                     ? temp | 0xFFFF0000
